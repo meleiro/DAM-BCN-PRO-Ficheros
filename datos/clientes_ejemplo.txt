@@ -1,3 +1,6 @@
-1;Ana García;ana@email.com;600123123
+1;Ana García;;600123123
+
+[1, Ana García, ,  600123123]
+
 2;Luis Pérez;luis@email.com;611234234;Luis
 3;marta@email.com;622345345

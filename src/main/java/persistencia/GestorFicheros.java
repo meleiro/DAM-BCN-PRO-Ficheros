@@ -1,3 +1,4 @@
+
 package persistencia;
 
 
@@ -205,6 +206,11 @@ import java.util.List;
 public class GestorFicheros {
 
 
+    private static final XmlMapper XML_MAPPER =
+            (XmlMapper) new  XmlMapper().enable(SerializationFeature.INDENT_OUTPUT);
+
+    private static final ObjectMapper MAPPER =
+            new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
     // ============================================================
     // TXT
@@ -1204,8 +1210,47 @@ public class GestorFicheros {
             List<Cliente> clientes
     ) throws IOException {
 
+        /*
+         * XML_MAPPER es el objeto de Jackson especializado en XML.
+         *
+         * writeValue() recibe:
+         *
+         *      1. el fichero de destino;
+         *      2. el objeto que queremos serializar.
+         *
+         * ruta.toFile() convierte el Path en un File.
+         *
+         * Envolvemos la lista dentro de ClientesXml para que
+         * Jackson tenga un elemento raíz que contenga los clientes.
+         *
+         * Conceptualmente:
+         *
+         *      List<Cliente>
+         *            |
+         *            v
+         *      ClientesXml
+         *            |
+         *            v
+         *       XML_MAPPER
+         *            |
+         *            v
+         *          fichero XML
+         */
+        XML_MAPPER.writeValue(ruta.toFile(), new ClientesXml(clientes));
 
-        // TODO: implementar cuando estudiemos XML.
+        /*
+         * Esta segunda instrucción utiliza MAPPER, que es el
+         * ObjectMapper configurado para JSON, y escribe sobre
+         * la misma ruta.
+         *
+         * Por tanto, tal como está escrito el código original,
+         * esta llamada vuelve a escribir el fichero después de
+         * XML_MAPPER. Se conserva aquí porque forma parte del
+         * código original, aunque conviene revisarla si el objetivo
+         * del método es generar exclusivamente XML.
+         */
+        MAPPER.writeValue(ruta.toFile(), new ClientesXml(clientes));
+
 
     }
 
@@ -1218,11 +1263,45 @@ public class GestorFicheros {
             Path ruta
     ) throws IOException {
 
+        /*
+         * readValue() realiza la DESERIALIZACIÓN:
+         *
+         *      fichero XML
+         *           |
+         *           v
+         *      XML_MAPPER
+         *           |
+         *           v
+         *      ClientesXml
+         *
+         * ruta.toFile() indica qué fichero queremos leer.
+         *
+         * ClientesXml.class indica a Jackson qué tipo de objeto
+         * debe reconstruir a partir del contenido XML.
+         */
+        ClientesXml contenedor =
+                XML_MAPPER.readValue(
+                        ruta.toFile(),
+                        ClientesXml.class
+                );
 
-        // TODO: implementar cuando estudiemos XML.
+        /*
+         * Una vez reconstruido el contenedor obtenemos su lista
+         * mediante getClientes().
+         *
+         * Utilizamos el operador ternario:
+         *
+         *      condicion ? valorSiTrue : valorSiFalse
+         *
+         * Si Jackson ha dejado la lista a null devolvemos una
+         * ArrayList vacía. En caso contrario devolvemos la lista
+         * de clientes recuperada del XML.
+         */
+        return contenedor.getClientes() == null
+                ? new ArrayList<>()
+                : contenedor.getClientes();
 
 
-        return new ArrayList<>();
     }
 
 
@@ -1281,6 +1360,9 @@ public class GestorFicheros {
      * Esto nos permite tener una estructura XML raíz
      * más clara y controlada.
      */
+
+
+
 
 
 
@@ -1454,8 +1536,27 @@ public class GestorFicheros {
             List<Cliente> clientes
     ) throws IOException {
 
-
-        // TODO: implementar cuando estudiemos JSON.
+        /*
+         * writeValue() SERIALIZA la lista de clientes.
+         *
+         * Es decir, transforma:
+         *
+         *      List<Cliente>
+         *            |
+         *            v
+         *       ObjectMapper
+         *            |
+         *            v
+         *          JSON
+         *
+         * ruta.toFile() indica el fichero donde se guardará
+         * el resultado y clientes es el objeto que queremos
+         * convertir a JSON.
+         *
+         * Como MAPPER está configurado con INDENT_OUTPUT, el
+         * JSON se escribirá indentado y será más fácil de leer.
+         */
+        MAPPER.writeValue(ruta.toFile(), clientes);
 
     }
 
@@ -1468,11 +1569,26 @@ public class GestorFicheros {
             Path ruta
     ) throws IOException {
 
-
-        // TODO: implementar.
-
-
-        return new ArrayList<>();
+        /*
+         * readValue() realiza el proceso contrario: DESERIALIZA
+         * el contenido del fichero JSON y reconstruye objetos Java.
+         *
+         * Queremos obtener exactamente:
+         *
+         *      List<Cliente>
+         *
+         * No podemos utilizar directamente List<Cliente>.class
+         * debido al borrado de tipos genéricos (type erasure)
+         * de Java.
+         *
+         * Por eso utilizamos TypeReference<List<Cliente>>.
+         * De esta forma Jackson conserva la información necesaria
+         * para saber que la lista contiene objetos Cliente.
+         */
+        return MAPPER.readValue(
+                ruta.toFile(),
+                new TypeReference<List<Cliente>>() {}
+        );
     }
 
 
