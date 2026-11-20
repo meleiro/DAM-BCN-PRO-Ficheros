@@ -1054,62 +1054,95 @@ public class GestorFicheros {
         return valor;
     }
 
-
-
-    /**
-     * Divide una línea CSV teniendo en cuenta
-     * las comillas y los separadores.
-     *
-     * Este método será más complejo que hacer:
-     *
-     *      linea.split(",")
-     *
-     * porque una coma puede formar parte del propio dato.
-     *
-     * Ejemplo:
-     *
-     *      3,"Rodriguez, Pepe",email,600000000
-     *
-     * La coma entre Rodriguez y Pepe NO es un separador.
-     *
-     * Este método todavía está pendiente de implementación.
-     */
     private static List<String> parseCsv(String linea) {
 
-
-        // TODO: implementar el parser CSV.
+        /*
+         * ============================================================
+         * PASO 1: PREPARAR LA LISTA DE RESULTADOS
+         * ============================================================
+         *
+         * Aquí guardaremos los campos que vayamos identificando.
+         *
+         * Por ejemplo:
+         *
+         *      1,Ana,Madrid
+         *
+         * debería producir:
+         *
+         *      ["1", "Ana", "Madrid"]
+         */
+        List<String> campos = new ArrayList<>();
 
 
         /*
-         * Return provisional para que compile.
+         * ============================================================
+         * PASO 2: PREPARAR EL CAMPO ACTUAL
+         * ============================================================
+         *
+         * Vamos a recorrer la línea carácter a carácter.
+         *
+         * Necesitamos una variable en la que ir acumulando
+         * los caracteres que pertenecen al campo actual.
+         *
+         * StringBuilder nos permite añadir caracteres mediante:
+         *
+         *      actual.append(caracter);
+         *
+         * Y vaciar su contenido mediante:
+         *
+         *      actual.setLength(0);
          */
-        return new ArrayList<>();
+        StringBuilder actual = new StringBuilder();
+
+        boolean entreComillas = false;
+
+
+        for (int i = 0 ; i < linea.length(); i++){
+            char c = linea.charAt(i);
+
+            if (c == '"') {
+                if (entreComillas && linea.charAt(i + 1) == '"' && i + 1 < linea.length()) {
+                    actual.append('"');
+
+                    i++;
+                } else {
+                    entreComillas = !entreComillas;
+
+                }
+            } else if ( c == ',' && !entreComillas) {
+                campos.add(actual.toString());
+                actual.setLength(0);
+            } else {
+                actual.append(c);
+
+            }
+
+        }
+        campos.add(actual.toString());
+        return campos;
+
     }
-
-
 
     /**
-     * Exporta clientes a CSV.
-     *
-     * Posteriormente aquí:
-     *
-     *      - abriremos el fichero;
-     *      - escribiremos la cabecera;
-     *      - recorreremos los clientes;
-     *      - utilizaremos csv() para escapar los campos;
-     *      - escribiremos una línea por cliente.
+     * TODO CSV — Exportación de clientes.
+     * @param ruta fichero destino (Path)
+
      */
-    public static void exportarClientesCsv(
-            Path ruta,
-            List<Cliente> clientes
-    ) throws IOException {
+    public static void exportarClientesCsv(Path ruta, List<Cliente> clientes) throws IOException {
 
+        try (BufferedWriter bw = Files.newBufferedWriter(ruta, StandardCharsets.UTF_8)) {
+            bw.write("id,nombre,email,telefono");
+            bw.newLine();
 
-        // TODO: implementar.
+            for (Cliente c: clientes){
+                bw.write(c.getId() + "," + csv(c.getNombre()) + "," + csv(c.getEmail()) + "," + csv(c.getTelefono()));
+                bw.newLine();
+            }
+
+        }
+
 
     }
-
-
 
     /**
      * Importa clientes desde CSV.
